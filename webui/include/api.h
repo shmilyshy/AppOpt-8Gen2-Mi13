@@ -26,6 +26,9 @@ char* api_get_status(void);
 // GET /api/presets - 获取预设方案
 char* api_get_presets(void);
 
+// GET /api/installed_apps - 获取所有已安装应用
+char* api_get_installed_apps(void);
+
 // POST /api/apply_preset - 应用预设方案
 char* api_apply_preset(const char *json_data);
 

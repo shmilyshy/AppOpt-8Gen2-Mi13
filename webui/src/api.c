@@ -32,6 +32,10 @@ enum MHD_Result api_handle_request(struct MHD_Connection *connection,
     else if (strcmp(url, "/api/presets") == 0 && strcmp(method, "GET") == 0) {
         response_json = api_get_presets();
     }
+    // GET /api/installed_apps - 获取所有已安装应用
+    else if (strcmp(url, "/api/installed_apps") == 0 && strcmp(method, "GET") == 0) {
+        response_json = api_get_installed_apps();
+    }
     // POST /api/apply_preset
     else if (strcmp(url, "/api/apply_preset") == 0 && strcmp(method, "POST") == 0) {
         response_json = api_apply_preset(upload_data);
@@ -291,4 +295,75 @@ char* api_get_presets(void) {
 char* api_apply_preset(const char *json_data) {
     // TODO: 实现预设方案应用
     return strdup("{\"success\":true}");
+}
+
+char* api_get_installed_apps(void) {
+    LOG_INFO("API: /api/installed_apps 被调用");
+    
+    // 执行pm list packages命令获取所有第三方应用
+    FILE *fp = popen("pm list packages -3", "r");
+    if (!fp) {
+        LOG_ERROR("无法执行pm命令");
+        return strdup("{\"success\":false,\"error\":\"Cannot execute pm command\"}");
+    }
+    
+    cJSON *root = cJSON_CreateObject();
+    cJSON *apps_array = cJSON_CreateArray();
+    
+    char line[512];
+    int count = 0;
+    
+    while (fgets(line, sizeof(line), fp) && count < 200) {
+        // 格式: package:com.example.app
+        if (strncmp(line, "package:", 8) == 0) {
+            char *package = line + 8;
+            
+            // 移除换行符
+            char *newline = strchr(package, '\n');
+            if (newline) *newline = '\0';
+            
+            // 跳过系统应用和常见的不需要优化的应用
+            if (strstr(package, "com.android.") || 
+                strstr(package, "com.google.android.") ||
+                strstr(package, "com.miui.") ||
+                strstr(package, "com.xiaomi.") && !strstr(package, "com.xiaomi.market")) {
+                continue;
+            }
+            
+            cJSON *app_obj = cJSON_CreateObject();
+            cJSON_AddStringToObject(app_obj, "package", package);
+            
+            // 尝试获取应用名称（简化版，直接用包名）
+            char *app_name = strrchr(package, '.');
+            if (app_name) {
+                cJSON_AddStringToObject(app_obj, "name", app_name + 1);
+            } else {
+                cJSON_AddStringToObject(app_obj, "name", package);
+            }
+            
+            // 默认推荐配置
+            const char *recommended = "0-3";
+            if (strstr(package, "game") || strstr(package, "Game")) {
+                recommended = "0-6";  // 游戏用大核
+            } else if (strstr(package, "music") || strstr(package, "video")) {
+                recommended = "0-2";  // 音视频用小核
+            }
+            cJSON_AddStringToObject(app_obj, "recommended", recommended);
+            
+            cJSON_AddItemToArray(apps_array, app_obj);
+            count++;
+        }
+    }
+    
+    pclose(fp);
+    
+    cJSON_AddBoolToObject(root, "success", true);
+    cJSON_AddNumberToObject(root, "total", count);
+    cJSON_AddItemToObject(root, "apps", apps_array);
+    
+    char *json_str = cJSON_Print(root);
+    cJSON_Delete(root);
+    
+    LOG_INFO("返回 %d 个已安装应用", count);
+    return json_str;
 }
