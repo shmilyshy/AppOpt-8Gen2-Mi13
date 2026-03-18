@@ -47,83 +47,35 @@ enum MHD_Result api_handle_request(struct MHD_Connection *connection,
 }
 
 char* api_get_apps(void) {
-    app_config_t apps[MAX_APPS];
-    int app_count = 0;
+    LOG_INFO("API: /api/apps 被调用");
     
-    LOG_INFO("开始读取应用配置...");
+    // 直接返回静态JSON数据用于测试
+    const char *json_template = 
+        "{"
+        "\"success\":true,"
+        "\"total\":2,"
+        "\"apps\":["
+        "{"
+        "\"package\":\"com.tencent.mm\","
+        "\"name\":\"微信\","
+        "\"affinity\":\"0-2\","
+        "\"running\":false,"
+        "\"pid\":0,"
+        "\"threads\":[]"
+        "},"
+        "{"
+        "\"package\":\"com.ss.android.ugc.aweme\","
+        "\"name\":\"抖音\","
+        "\"affinity\":\"0-3\","
+        "\"running\":false,"
+        "\"pid\":0,"
+        "\"threads\":[]"
+        "}"
+        "]"
+        "}";
     
-    // 读取配置
-    if (config_read(CONFIG_FILE, apps, &app_count) < 0) {
-        LOG_ERROR("读取配置文件失败: %s", CONFIG_FILE);
-        // 返回空列表而不是错误
-        app_count = 0;
-    }
-    
-    LOG_INFO("读取到 %d 个应用配置", app_count);
-    
-    // 如果没有配置，添加一些示例数据
-    if (app_count == 0) {
-        LOG_INFO("配置为空，添加示例数据");
-        strcpy(apps[0].package, "com.tencent.mm");
-        strcpy(apps[0].name, "微信");
-        strcpy(apps[0].affinity, "0-2");
-        apps[0].running = false;
-        apps[0].pid = 0;
-        apps[0].thread_count = 0;
-        
-        strcpy(apps[1].package, "com.ss.android.ugc.aweme");
-        strcpy(apps[1].name, "抖音");
-        strcpy(apps[1].affinity, "0-3");
-        apps[1].running = false;
-        apps[1].pid = 0;
-        apps[1].thread_count = 0;
-        
-        app_count = 2;
-    }
-    
-    // 更新运行状态
-    for (int i = 0; i < app_count; i++) {
-        apps[i].running = app_is_running(apps[i].package);
-        if (apps[i].running) {
-            apps[i].pid = app_get_pid(apps[i].package);
-        }
-    }
-    
-    // 构建JSON
-    cJSON *root = cJSON_CreateObject();
-    cJSON *apps_array = cJSON_CreateArray();
-    
-    for (int i = 0; i < app_count; i++) {
-        cJSON *app_obj = cJSON_CreateObject();
-        cJSON_AddStringToObject(app_obj, "package", apps[i].package);
-        cJSON_AddStringToObject(app_obj, "name", apps[i].name);
-        cJSON_AddStringToObject(app_obj, "affinity", apps[i].affinity);
-        cJSON_AddBoolToObject(app_obj, "running", apps[i].running);
-        cJSON_AddNumberToObject(app_obj, "pid", apps[i].pid);
-        
-        // 添加线程配置
-        cJSON *threads_array = cJSON_CreateArray();
-        for (int j = 0; j < apps[i].thread_count; j++) {
-            cJSON *thread_obj = cJSON_CreateObject();
-            cJSON_AddStringToObject(thread_obj, "name", apps[i].threads[j].name);
-            cJSON_AddStringToObject(thread_obj, "affinity", apps[i].threads[j].affinity);
-            cJSON_AddItemToArray(threads_array, thread_obj);
-        }
-        cJSON_AddItemToObject(app_obj, "threads", threads_array);
-        
-        cJSON_AddItemToArray(apps_array, app_obj);
-    }
-    
-    cJSON_AddItemToObject(root, "apps", apps_array);
-    cJSON_AddNumberToObject(root, "total", app_count);
-    cJSON_AddBoolToObject(root, "success", true);
-    
-    char *json_str = cJSON_Print(root);
-    cJSON_Delete(root);
-    
-    LOG_INFO("返回JSON: %d 字节", (int)strlen(json_str));
-    
-    return json_str;
+    LOG_INFO("返回静态数据");
+    return strdup(json_template);
 }
 
 char* api_get_config(void) {
