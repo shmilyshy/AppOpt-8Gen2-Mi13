@@ -11,7 +11,7 @@ extern const char _binary_web_app_js_start[];
 extern const char _binary_web_app_js_end[];
 
 // HTTP请求处理回调
-static int request_handler(void *cls,
+static enum MHD_Result request_handler(void *cls,
                           struct MHD_Connection *connection,
                           const char *url,
                           const char *method,
@@ -29,7 +29,8 @@ static int request_handler(void *cls,
     
     // 处理静态文件
     if (strcmp(url, "/") == 0 || strcmp(url, "/index.html") == 0) {
-        size_t size = _binary_web_index_html_end - _binary_web_index_html_start;
+        size_t size = (size_t)(_binary_web_index_html_end - _binary_web_index_html_start);
+        (void)size; // 标记为已使用
         return send_html_response(connection, _binary_web_index_html_start, 200);
     }
     else if (strcmp(url, "/style.css") == 0) {
@@ -107,7 +108,7 @@ void http_server_free(http_server_t *server) {
     free(server);
 }
 
-int send_json_response(struct MHD_Connection *connection, 
+enum MHD_Result send_json_response(struct MHD_Connection *connection, 
                        const char *json_data, 
                        int status_code) {
     struct MHD_Response *response = MHD_create_response_from_buffer(
@@ -125,7 +126,7 @@ int send_json_response(struct MHD_Connection *connection,
     return ret;
 }
 
-int send_html_response(struct MHD_Connection *connection, 
+enum MHD_Result send_html_response(struct MHD_Connection *connection, 
                        const char *html_data, 
                        int status_code) {
     struct MHD_Response *response = MHD_create_response_from_buffer(

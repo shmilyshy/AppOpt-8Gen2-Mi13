@@ -2,9 +2,9 @@
 #include "app_manager.h"
 #include "config.h"
 #include "http_server.h"
-#include <cjson/cJSON.h>
+#include <cJSON.h>
 
-int api_handle_request(struct MHD_Connection *connection,
+enum MHD_Result api_handle_request(struct MHD_Connection *connection,
                        const char *url,
                        const char *method,
                        const char *upload_data,

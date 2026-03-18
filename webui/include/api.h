@@ -5,7 +5,7 @@
 #include <microhttpd.h>
 
 // API路由处理函数
-int api_handle_request(struct MHD_Connection *connection,
+enum MHD_Result api_handle_request(struct MHD_Connection *connection,
                        const char *url,
                        const char *method,
                        const char *upload_data,

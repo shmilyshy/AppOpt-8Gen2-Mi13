@@ -32,12 +32,12 @@ void http_server_stop(http_server_t *server);
 void http_server_free(http_server_t *server);
 
 // 发送JSON响应
-int send_json_response(struct MHD_Connection *connection, 
+enum MHD_Result send_json_response(struct MHD_Connection *connection, 
                        const char *json_data, 
                        int status_code);
 
 // 发送HTML响应
-int send_html_response(struct MHD_Connection *connection, 
+enum MHD_Result send_html_response(struct MHD_Connection *connection, 
                        const char *html_data, 
                        int status_code);
 

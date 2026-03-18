@@ -15,7 +15,7 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - name: Setup Android NDK
       uses: nttld/setup-ndk@v1
@@ -57,10 +57,15 @@ jobs:
       run: |
         cd webui
         export NDK_PATH=$ANDROID_NDK_HOME
+        export CC=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android30-clang
+        export MICROHTTPD_INCLUDE=/tmp/libmicrohttpd-0.9.77/install/include
+        export MICROHTTPD_LIB=/tmp/libmicrohttpd-0.9.77/install/lib
+        export CJSON_INCLUDE=/tmp/cJSON
+        export CJSON_LIB=/tmp/cJSON/build
         make ARCH=arm64 -j$(nproc)
     
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: AppOptWebUI-arm64
         path: webui/bin/AppOptWebUI
@@ -73,7 +78,7 @@ jobs:
     
     - name: Upload release
       if: github.event_name == 'push'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: AppOptWebUI-release
         path: webui/bin/*.tar.gz
