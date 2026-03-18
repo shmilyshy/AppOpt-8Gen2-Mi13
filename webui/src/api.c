@@ -50,6 +50,62 @@ enum MHD_Result api_handle_request(struct MHD_Connection *connection,
     return ret;
 }
 
+// 获取应用的真实名称
+static char* get_app_label(const char *package) {
+    char cmd[512];
+    snprintf(cmd, sizeof(cmd), "pm dump %s | grep -A1 'labelRes=' | tail -1 | sed 's/.*resourceName=//' | cut -d'/' -f2", package);
+    
+    FILE *fp = popen(cmd, "r");
+    if (!fp) return NULL;
+    
+    char label[256] = {0};
+    if (fgets(label, sizeof(label), fp)) {
+        // 移除换行符
+        char *newline = strchr(label, '\n');
+        if (newline) *newline = '\0';
+        
+        // 如果获取失败或为空，返回NULL
+        if (strlen(label) == 0) {
+            pclose(fp);
+            return NULL;
+        }
+        
+        pclose(fp);
+        return strdup(label);
+    }
+    
+    pclose(fp);
+    return NULL;
+}
+
+// 根据包名获取中文应用名（常见应用映射）
+static const char* get_app_name_cn(const char *package) {
+    if (strstr(package, "com.tencent.mm")) return "微信";
+    if (strstr(package, "com.tencent.mobileqq")) return "QQ";
+    if (strstr(package, "com.ss.android.ugc.aweme")) return "抖音";
+    if (strstr(package, "com.smile.gifmaker")) return "快手";
+    if (strstr(package, "tv.danmaku.bili")) return "哔哩哔哩";
+    if (strstr(package, "com.tencent.tmgp.sgame")) return "王者荣耀";
+    if (strstr(package, "com.tencent.tmgp.pubgmhd")) return "和平精英";
+    if (strstr(package, "com.miHoYo.Yuanshen")) return "原神";
+    if (strstr(package, "com.miHoYo.hkrpg")) return "崩坏：星穹铁道";
+    if (strstr(package, "com.miHoYo.Nap")) return "绝区零";
+    if (strstr(package, "com.taobao.taobao")) return "淘宝";
+    if (strstr(package, "com.jingdong.app.mall")) return "京东";
+    if (strstr(package, "com.eg.android.AlipayGphone")) return "支付宝";
+    if (strstr(package, "com.tencent.qqmusic")) return "QQ音乐";
+    if (strstr(package, "com.netease.cloudmusic")) return "网易云音乐";
+    if (strstr(package, "com.android.chrome")) return "Chrome";
+    if (strstr(package, "com.UCMobile")) return "UC浏览器";
+    if (strstr(package, "com.miui.home")) return "MIUI桌面";
+    if (strstr(package, "com.android.systemui")) return "系统界面";
+    if (strstr(package, "com.tencent.lolm")) return "英雄联盟手游";
+    if (strstr(package, "com.kurogame.mingchao")) return "鸣潮";
+    if (strstr(package, "com.netease.party")) return "蛋仔派对";
+    
+    return NULL;
+}
+
 char* api_get_apps(void) {
     LOG_INFO("API: /api/apps 被调用");
     
@@ -100,12 +156,18 @@ char* api_get_apps(void) {
         cJSON *app_obj = cJSON_CreateObject();
         cJSON_AddStringToObject(app_obj, "package", package);
         
-        // 从包名提取应用名称
-        char *app_name = strrchr(package, '.');
-        if (app_name) {
-            cJSON_AddStringToObject(app_obj, "name", app_name + 1);
+        // 获取应用中文名称
+        const char *cn_name = get_app_name_cn(package);
+        if (cn_name) {
+            cJSON_AddStringToObject(app_obj, "name", cn_name);
         } else {
-            cJSON_AddStringToObject(app_obj, "name", package);
+            // 从包名提取应用名称
+            char *app_name = strrchr(package, '.');
+            if (app_name) {
+                cJSON_AddStringToObject(app_obj, "name", app_name + 1);
+            } else {
+                cJSON_AddStringToObject(app_obj, "name", package);
+            }
         }
         
         cJSON_AddStringToObject(app_obj, "affinity", affinity);
@@ -414,17 +476,25 @@ char* api_get_installed_apps(void) {
             cJSON *app_obj = cJSON_CreateObject();
             cJSON_AddStringToObject(app_obj, "package", package);
             
-            // 尝试获取应用名称（简化版，直接用包名）
-            char *app_name = strrchr(package, '.');
-            if (app_name) {
-                cJSON_AddStringToObject(app_obj, "name", app_name + 1);
+            // 获取应用中文名称
+            const char *cn_name = get_app_name_cn(package);
+            if (cn_name) {
+                cJSON_AddStringToObject(app_obj, "name", cn_name);
             } else {
-                cJSON_AddStringToObject(app_obj, "name", package);
+                // 从包名提取应用名称
+                char *app_name = strrchr(package, '.');
+                if (app_name) {
+                    cJSON_AddStringToObject(app_obj, "name", app_name + 1);
+                } else {
+                    cJSON_AddStringToObject(app_obj, "name", package);
+                }
             }
             
             // 默认推荐配置
             const char *recommended = "0-3";
-            if (strstr(package, "game") || strstr(package, "Game")) {
+            if (strstr(package, "game") || strstr(package, "Game") || 
+                strstr(package, "tmgp") || strstr(package, "miHoYo") ||
+                strstr(package, "kurogame")) {
                 recommended = "0-6";  // 游戏用大核
             } else if (strstr(package, "music") || strstr(package, "video")) {
                 recommended = "0-2";  // 音视频用小核
