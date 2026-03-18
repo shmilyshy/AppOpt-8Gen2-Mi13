@@ -1,0 +1,43 @@
+# 编译产物
+*.o
+*.a
+*.so
+bin/
+build/
+AppOptWebUI
+webui/bin/
+webui/build/
+webui-go/AppOptWebUI
+
+# 压缩包
+*.zip
+*.tar.gz
+*.7z
+
+# 日志文件
+*.log
+
+# 临时文件
+*.tmp
+*.bak
+*~
+*.swp
+
+# IDE配置
+.vscode/
+.idea/
+*.iml
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Android相关
+*.apk
+*.dex
+local.properties
+
+# 测试文件
+test/
+temp/

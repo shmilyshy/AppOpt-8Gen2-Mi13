@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AppOpt 线程优化管理</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 AppOpt 线程优化管理</h1>
+            <p>骁龙8Gen2小米13专用 | 作者: 刘十三</p>
+        </div>
+        
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-label">设备型号</div>
+                <div class="status-value" id="device-model">加载中...</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">处理器</div>
+                <div class="status-value" id="soc-model">加载中...</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">AppOpt状态</div>
+                <div class="status-value" id="appopt-status">加载中...</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">CPU核心</div>
+                <div class="status-value" id="cpu-cores">加载中...</div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div id="app-list" class="app-list">
+                <div class="loading">正在加载应用列表...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
