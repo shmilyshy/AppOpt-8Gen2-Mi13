@@ -38,7 +38,6 @@ TARGET = $(BIN_DIR)/AppOptWebUI
 
 # 编译选项
 CFLAGS = -I$(INC_DIR) -Wall -O2 -std=c11
-LDFLAGS = 
 
 # 依赖库路径 (可通过环境变量覆盖)
 MICROHTTPD_INCLUDE ?= /usr/local/include
@@ -48,15 +47,14 @@ CJSON_LIB ?= /usr/local/lib
 
 # 添加依赖库路径
 CFLAGS += -I$(MICROHTTPD_INCLUDE) -I$(CJSON_INCLUDE)
-LDFLAGS += -L$(MICROHTTPD_LIB) -L$(CJSON_LIB) -lmicrohttpd -lcjson
 
 # 静态链接选项 (用于Android)
 ifeq ($(ARCH),arm64)
-    LDFLAGS += -static
+    LDFLAGS = -L$(MICROHTTPD_LIB) -L$(CJSON_LIB) -static -lmicrohttpd -lcjson
     OBJCOPY_ARCH = aarch64
     OBJCOPY_FORMAT = elf64-littleaarch64
 else
-    LDFLAGS += -lpthread
+    LDFLAGS = -L$(MICROHTTPD_LIB) -L$(CJSON_LIB) -lmicrohttpd -lcjson -lpthread
     OBJCOPY_ARCH = i386:x86-64
     OBJCOPY_FORMAT = elf64-x86-64
 endif
