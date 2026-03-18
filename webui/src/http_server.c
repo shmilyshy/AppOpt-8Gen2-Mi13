@@ -1,14 +1,45 @@
 #include "http_server.h"
 #include "api.h"
 #include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
 
-// 嵌入的HTML内容
-extern const char _binary_web_index_html_start[];
-extern const char _binary_web_index_html_end[];
-extern const char _binary_web_style_css_start[];
-extern const char _binary_web_style_css_end[];
-extern const char _binary_web_app_js_start[];
-extern const char _binary_web_app_js_end[];
+// Web文件路径
+#define WEB_ROOT "/data/adb/modules/AppOpt_8Gen2_Mi13/web"
+
+// 读取文件内容
+static char* read_file(const char *filepath, size_t *size) {
+    int fd = open(filepath, O_RDONLY);
+    if (fd < 0) {
+        LOG_ERROR("无法打开文件: %s", filepath);
+        return NULL;
+    }
+    
+    struct stat st;
+    if (fstat(fd, &st) < 0) {
+        close(fd);
+        return NULL;
+    }
+    
+    *size = st.st_size;
+    char *content = (char*)malloc(*size + 1);
+    if (!content) {
+        close(fd);
+        return NULL;
+    }
+    
+    if (read(fd, content, *size) != (ssize_t)*size) {
+        free(content);
+        close(fd);
+        return NULL;
+    }
+    
+    content[*size] = '\0';
+    close(fd);
+    return content;
+}
 
 // HTTP请求处理回调
 static enum MHD_Result request_handler(void *cls,
@@ -28,33 +59,43 @@ static enum MHD_Result request_handler(void *cls,
     }
     
     // 处理静态文件
+    char filepath[256];
+    const char *content_type = "text/html";
+    
     if (strcmp(url, "/") == 0 || strcmp(url, "/index.html") == 0) {
-        size_t size = (size_t)(_binary_web_index_html_end - _binary_web_index_html_start);
-        (void)size; // 标记为已使用
-        return send_html_response(connection, _binary_web_index_html_start, 200);
+        snprintf(filepath, sizeof(filepath), "%s/index.html", WEB_ROOT);
+        content_type = "text/html";
     }
     else if (strcmp(url, "/style.css") == 0) {
-        size_t size = _binary_web_style_css_end - _binary_web_style_css_start;
-        struct MHD_Response *response = MHD_create_response_from_buffer(
-            size, (void*)_binary_web_style_css_start, MHD_RESPMEM_PERSISTENT);
-        MHD_add_response_header(response, "Content-Type", "text/css");
-        int ret = MHD_queue_response(connection, 200, response);
-        MHD_destroy_response(response);
-        return ret;
+        snprintf(filepath, sizeof(filepath), "%s/style.css", WEB_ROOT);
+        content_type = "text/css";
     }
     else if (strcmp(url, "/app.js") == 0) {
-        size_t size = _binary_web_app_js_end - _binary_web_app_js_start;
-        struct MHD_Response *response = MHD_create_response_from_buffer(
-            size, (void*)_binary_web_app_js_start, MHD_RESPMEM_PERSISTENT);
-        MHD_add_response_header(response, "Content-Type", "application/javascript");
-        int ret = MHD_queue_response(connection, 200, response);
-        MHD_destroy_response(response);
-        return ret;
+        snprintf(filepath, sizeof(filepath), "%s/app.js", WEB_ROOT);
+        content_type = "application/javascript";
+    }
+    else {
+        // 404
+        const char *not_found = "{\"error\":\"Not Found\"}";
+        return send_json_response(connection, not_found, 404);
     }
     
-    // 404
-    const char *not_found = "{\"error\":\"Not Found\"}";
-    return send_json_response(connection, not_found, 404);
+    // 读取文件
+    size_t size;
+    char *content = read_file(filepath, &size);
+    if (!content) {
+        const char *error = "{\"error\":\"File not found\"}";
+        return send_json_response(connection, error, 404);
+    }
+    
+    // 发送响应
+    struct MHD_Response *response = MHD_create_response_from_buffer(
+        size, content, MHD_RESPMEM_MUST_FREE);
+    MHD_add_response_header(response, "Content-Type", content_type);
+    int ret = MHD_queue_response(connection, 200, response);
+    MHD_destroy_response(response);
+    
+    return ret;
 }
 
 http_server_t* http_server_init(int port) {

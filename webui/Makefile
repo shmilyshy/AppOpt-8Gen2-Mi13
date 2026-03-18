@@ -29,10 +29,6 @@ BIN_DIR = bin
 SRCS = $(wildcard $(SRC_DIR)/*.c)
 OBJS = $(SRCS:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
 
-# Web资源
-WEB_FILES = $(WEB_DIR)/index.html $(WEB_DIR)/style.css $(WEB_DIR)/app.js
-WEB_OBJS = $(BUILD_DIR)/web_index_html.o $(BUILD_DIR)/web_style_css.o $(BUILD_DIR)/web_app_js.o
-
 # 目标文件
 TARGET = $(BIN_DIR)/AppOptWebUI
 
@@ -73,25 +69,9 @@ $(BIN_DIR):
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# 将Web资源嵌入到二进制
-$(BUILD_DIR)/web_index_html.o: $(WEB_DIR)/index.html | $(BUILD_DIR)
-	$(OBJCOPY) -I binary -O $(OBJCOPY_FORMAT) -B $(OBJCOPY_ARCH) \
-		--rename-section .data=.rodata,alloc,load,readonly,data,contents \
-		$< $@
-
-$(BUILD_DIR)/web_style_css.o: $(WEB_DIR)/style.css | $(BUILD_DIR)
-	$(OBJCOPY) -I binary -O $(OBJCOPY_FORMAT) -B $(OBJCOPY_ARCH) \
-		--rename-section .data=.rodata,alloc,load,readonly,data,contents \
-		$< $@
-
-$(BUILD_DIR)/web_app_js.o: $(WEB_DIR)/app.js | $(BUILD_DIR)
-	$(OBJCOPY) -I binary -O $(OBJCOPY_FORMAT) -B $(OBJCOPY_ARCH) \
-		--rename-section .data=.rodata,alloc,load,readonly,data,contents \
-		$< $@
-
 # 链接生成可执行文件
-$(TARGET): $(OBJS) $(WEB_OBJS) | $(BIN_DIR)
-	$(CC) $(OBJS) $(WEB_OBJS) -o $@ $(LDFLAGS)
+$(TARGET): $(OBJS) | $(BIN_DIR)
+	$(CC) $(OBJS) -o $@ $(LDFLAGS)
 	@echo "编译完成: $@"
 	@ls -lh $@
 
