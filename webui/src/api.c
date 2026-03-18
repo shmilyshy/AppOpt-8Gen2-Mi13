@@ -300,8 +300,8 @@ char* api_apply_preset(const char *json_data) {
 char* api_get_installed_apps(void) {
     LOG_INFO("API: /api/installed_apps 被调用");
     
-    // 执行pm list packages命令获取所有第三方应用
-    FILE *fp = popen("pm list packages -3", "r");
+    // 执行pm list packages命令获取所有应用（包括系统应用）
+    FILE *fp = popen("pm list packages", "r");
     if (!fp) {
         LOG_ERROR("无法执行pm命令");
         return strdup("{\"success\":false,\"error\":\"Cannot execute pm command\"}");
@@ -322,13 +322,16 @@ char* api_get_installed_apps(void) {
             char *newline = strchr(package, '\n');
             if (newline) *newline = '\0';
             
-            // 跳过系统应用和常见的不需要优化的应用
+            // 可选：跳过一些不需要优化的系统核心应用
+            // 注释掉过滤，显示所有应用
+            /*
             if (strstr(package, "com.android.") || 
                 strstr(package, "com.google.android.") ||
                 strstr(package, "com.miui.") ||
                 strstr(package, "com.xiaomi.") && !strstr(package, "com.xiaomi.market")) {
                 continue;
             }
+            */
             
             cJSON *app_obj = cJSON_CreateObject();
             cJSON_AddStringToObject(app_obj, "package", package);
