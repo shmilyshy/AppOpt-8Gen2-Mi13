@@ -53,7 +53,7 @@ enum MHD_Result api_handle_request(struct MHD_Connection *connection,
 char* api_get_apps(void) {
     LOG_INFO("API: /api/apps 被调用");
     
-    // 从配置文件读取应用列表
+    // 从配置文件读取应用列表（只返回主应用，不包含线程规则）
     cJSON *root = cJSON_CreateObject();
     cJSON *apps_array = cJSON_CreateArray();
     
@@ -84,6 +84,11 @@ char* api_get_apps(void) {
         *equals = '\0';
         char *package = line;
         char *affinity = equals + 1;
+        
+        // 跳过线程规则（包含 { 或 : 的）
+        if (strchr(package, '{') || strchr(package, ':')) {
+            continue;
+        }
         
         // 移除换行符
         char *newline = strchr(affinity, '\n');
@@ -121,7 +126,7 @@ char* api_get_apps(void) {
     char *json_str = cJSON_Print(root);
     cJSON_Delete(root);
     
-    LOG_INFO("返回 %d 个已配置应用", count);
+    LOG_INFO("返回 %d 个主应用（已过滤线程规则）", count);
     return json_str;
 }
 
