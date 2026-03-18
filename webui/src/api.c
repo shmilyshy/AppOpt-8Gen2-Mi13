@@ -53,7 +53,80 @@ enum MHD_Result api_handle_request(struct MHD_Connection *connection,
 char* api_get_apps(void) {
     LOG_INFO("API: /api/apps 被调用");
     
-    // 返回更多常用应用的配置
+    // 从配置文件读取应用列表
+    cJSON *root = cJSON_CreateObject();
+    cJSON *apps_array = cJSON_CreateArray();
+    
+    FILE *fp = fopen(CONFIG_FILE, "r");
+    if (!fp) {
+        LOG_WARN("配置文件不存在，返回空列表");
+        cJSON_AddBoolToObject(root, "success", true);
+        cJSON_AddNumberToObject(root, "total", 0);
+        cJSON_AddItemToObject(root, "apps", apps_array);
+        char *json_str = cJSON_Print(root);
+        cJSON_Delete(root);
+        return json_str;
+    }
+    
+    char line[512];
+    int count = 0;
+    
+    while (fgets(line, sizeof(line), fp) && count < 100) {
+        // 跳过注释和空行
+        if (line[0] == '#' || line[0] == '\n' || line[0] == '\r') {
+            continue;
+        }
+        
+        // 解析格式: package=affinity
+        char *equals = strchr(line, '=');
+        if (!equals) continue;
+        
+        *equals = '\0';
+        char *package = line;
+        char *affinity = equals + 1;
+        
+        // 移除换行符
+        char *newline = strchr(affinity, '\n');
+        if (newline) *newline = '\0';
+        newline = strchr(affinity, '\r');
+        if (newline) *newline = '\0';
+        
+        // 创建应用对象
+        cJSON *app_obj = cJSON_CreateObject();
+        cJSON_AddStringToObject(app_obj, "package", package);
+        
+        // 从包名提取应用名称
+        char *app_name = strrchr(package, '.');
+        if (app_name) {
+            cJSON_AddStringToObject(app_obj, "name", app_name + 1);
+        } else {
+            cJSON_AddStringToObject(app_obj, "name", package);
+        }
+        
+        cJSON_AddStringToObject(app_obj, "affinity", affinity);
+        cJSON_AddBoolToObject(app_obj, "running", false);
+        cJSON_AddNumberToObject(app_obj, "pid", 0);
+        cJSON_AddItemToObject(app_obj, "threads", cJSON_CreateArray());
+        
+        cJSON_AddItemToArray(apps_array, app_obj);
+        count++;
+    }
+    
+    fclose(fp);
+    
+    cJSON_AddBoolToObject(root, "success", true);
+    cJSON_AddNumberToObject(root, "total", count);
+    cJSON_AddItemToObject(root, "apps", apps_array);
+    
+    char *json_str = cJSON_Print(root);
+    cJSON_Delete(root);
+    
+    LOG_INFO("返回 %d 个已配置应用", count);
+    return json_str;
+}
+
+char* api_get_apps_old(void) {
+    // 旧的硬编码版本，保留作为参考
     const char *json_template = 
         "{"
         "\"success\":true,"
@@ -158,7 +231,7 @@ char* api_get_apps(void) {
         "]"
         "}";
     
-    LOG_INFO("返回12个应用配置");
+    LOG_INFO("返回12个应用配置(旧版本)");
     return strdup(json_template);
 }
 
