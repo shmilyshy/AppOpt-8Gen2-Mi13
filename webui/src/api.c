@@ -59,7 +59,7 @@ char* api_get_apps(void) {
     
     FILE *fp = fopen(CONFIG_FILE, "r");
     if (!fp) {
-        LOG_WARN("配置文件不存在，返回空列表");
+        LOG_INFO("配置文件不存在，返回空列表");
         cJSON_AddBoolToObject(root, "success", true);
         cJSON_AddNumberToObject(root, "total", 0);
         cJSON_AddItemToObject(root, "apps", apps_array);
